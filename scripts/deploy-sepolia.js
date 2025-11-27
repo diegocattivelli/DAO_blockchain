@@ -27,24 +27,24 @@ async function exportFrontend(addresses) {
 
   for (const name of contractNames) {
     const artifact = await hre.artifacts.readArtifact(name);
-    const abiPath = path.join(ABI_DIR, ${name}.json);
+    const abiPath = path.join(ABI_DIR, `${name}.json`);
     fs.writeFileSync(abiPath, JSON.stringify(artifact.abi, null, 2));
   }
 
-  const configJs = export const CONTRACTS = ${JSON.stringify(addresses, null, 2)};;
+  const configJs = `export const CONTRACTS = ${JSON.stringify(addresses, null, 2)};`;
   fs.writeFileSync(CONFIG_FILE, configJs);
 }
 
 async function verify(address, constructorArgs = []) {
-  console.log(\n🟦 Verificando ${address}...);
+  console.log(`\n🟦 Verificando ${address}...`);
   try {
     await hre.run("verify:verify", {
       address,
       constructorArguments: constructorArgs,
     });
-    console.log(➡ Verificado OK: ${address});
+    console.log(`➡ Verificado OK: ${address}`);
   } catch (err) {
-    console.log(⚠ No se pudo verificar:, err.message);
+    console.log("⚠ No se pudo verificar:", err.message);
   }
 }
 
@@ -147,7 +147,7 @@ async function main() {
   const deploymentsDir = "./deployments";
   if (!fs.existsSync(deploymentsDir)) fs.mkdirSync(deploymentsDir);
   fs.writeFileSync(
-    ${deploymentsDir}/sepolia-deployment.json,
+    `${deploymentsDir}/sepolia-deployment.json`,
     JSON.stringify(addresses, null, 2)
   );
 
