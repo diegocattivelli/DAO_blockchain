@@ -1,0 +1,11 @@
+// AUTO-GENERADO por scripts/deploy.js — no editar a mano
+export const CONTRACTS = {
+  "daoCore": "0x61084a712D9C41aE1AA7dB218f302f73B6fB5096",
+  "daoDelegation": "0xb4dc22707C8664dd4a94195223B7cC4CcD0a808b",
+  "daoToken": "0xF78eCDAb1b328522Bd4Cf969aA9045281A9d401e",
+  "daoViews": "0xb8029BbAf232BbC278Ca74232B8aEA021e3A921f",
+  "staking": "0x62Cf186EA340302888721288D2CE1a2aaBE4deE9",
+  "token": "0x99a928B845FF6e2d6b738D9b5e5808E742a6B98d",
+  "multisigOwner": "0x629dA6B8086953932384A507edEaB15d740BcB93",
+  "multisigPanic": "0x730d0bE276452C102e29ab14cBBe595fE57e95ca"
+};

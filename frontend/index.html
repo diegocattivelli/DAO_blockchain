@@ -1,0 +1,491 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>DAO Dashboard</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+  <style>
+    body { background-color: #f8fafc; }
+    .card { border-radius: 12px; }
+    .tab-content { margin-top: 20px; }
+    .form-label { font-weight: 500; }
+    .btn-full { width: 100%; }
+    .btn-right { width: 15%; float: right; display: block; margin-left: auto; }
+    .top-bar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 1rem;
+    }
+    .top-bar > div {
+      display: flex;
+      align-items: center;
+      gap: 0.6rem;
+    }
+    .top-bar h2 { margin: 0; }
+    .delegation-badge { 
+      display: inline-block; 
+      background: #e3f2fd; 
+      color: #1976d2; 
+      padding: 4px 12px; 
+      border-radius: 12px; 
+      font-size: 0.85rem;
+      margin-left: 8px;
+    }
+    .delegation-section {
+      background: #f8f9fa;
+      border-radius: 8px;
+      padding: 15px;
+      margin-top: 10px;
+    }
+    .el-propuesta {
+      border-radius: 14px;
+      transition: transform 0.15s ease, box-shadow 0.15s ease;
+    }
+
+    .el-propuesta:hover {
+      transform: translateY(-3px);
+      box-shadow: 0 6px 16px rgba(0,0,0,0.12);
+    }
+
+    .estado-propuesta {
+      padding: 6px 12px;
+      border-radius: 50px;
+      color: white;
+      font-weight: 600;
+      font-size: 0.85rem;
+    }
+
+    .info-box {
+      padding: 6px 12px;
+      border-radius: 10px;
+      background: #f7f7f7;
+      border: 1px solid #ddd;
+      font-size: 0.9rem;
+    }
+
+    /* Estilos para toasts */
+    .toast-container {
+      position: fixed;
+      bottom: 20px;
+      right: 20px;
+      z-index: 9999;
+    }
+  </style>
+</head>
+
+<body class="p-4">
+  <div id="toastContainer" class="toast-container position-fixed bottom-0 end-0 p-3"></div>
+
+  <!-- Contenedor de Toasts -->
+  <div class="toast-container" id="toastContainer"></div>
+
+  <div class="container">
+    <div class="top-bar">
+      <div>
+        <h2>Panel de la DAO</h2>
+      <button class="btn btn-sm btn-outline-primary" id="daoParamsInfo" data-bs-toggle="modal" data-bs-target="#paramsModal" title="Ver Parámetros de la DAO">ℹ️ </button>
+      </div>
+      <button class="btn btn-outline-primary" id="connectWalletBtn">Conectar Wallet</button>
+    </div>
+
+    <div id="panicMsg" class="alert alert-warning text-center" style="display:none;"></div>
+    <div id="votingModeStatus" class="alert alert-info text-center" style="display:none;"></div>
+
+    <!-- NAV TABS -->
+    <ul class="nav nav-tabs" id="daoTabs" role="tablist">
+      <li class="nav-item">
+        <button class="nav-link active" id="owner-tab" data-bs-toggle="tab" data-bs-target="#owner" type="button" role="tab">Owner</button>
+      </li>
+
+      <li class="nav-item">
+        <button class="nav-link" id="tokens-tab" data-bs-toggle="tab" data-bs-target="#tokens" type="button" role="tab">Tokens</button>
+      </li>
+
+      <li class="nav-item">
+        <button class="nav-link" id="proposals-tab" data-bs-toggle="tab" data-bs-target="#proposals" type="button" role="tab">Propuestas</button>
+      </li>
+      <li class="nav-item">
+        <button class="nav-link" id="delegation-tab" data-bs-toggle="tab" data-bs-target="#delegation" type="button" role="tab">Delegación</button>
+      </li>
+
+      <!-- NUEVA PESTAÑA STAKING -->
+      <li class="nav-item">
+        <button class="nav-link" id="staking-tab" data-bs-toggle="tab" data-bs-target="#staking" type="button" role="tab">Staking</button>
+      </li>
+
+      <li class="nav-item">
+        <button class="nav-link" id="panic-tab" data-bs-toggle="tab" data-bs-target="#panic" type="button" role="tab">Pánico</button>
+      </li>
+    </ul>
+
+    <div class="tab-content" id="daoTabsContent">
+
+      <!-- OWNER TAB -->
+      <div class="tab-pane fade show active" id="owner" role="tabpanel">
+        <div class="card p-4 mt-3">
+          <h4>Funciones de Owner</h4>
+          <hr>
+
+          <!-- Mint -->
+          <div class="mb-4">
+            <h5>🪙 Mint Tokens</h5>
+            <input type="number" id="mintAmount" class="form-control mb-2" placeholder="Cantidad a mintear">
+            <button class="btn btn-primary btn-right" id="btnMint">Mintear</button>
+          </div>
+
+          <!-- Update Params -->
+          <div class="mb-4">
+            <h5>⚡ Actualizar Parámetros de la DAO</h5>
+            <div class="row g-2 mt-2">
+              <div class="col-md-4">
+                <label class="form-label">Precio (Wei por token)</label>
+                <input type="number" id="paramPrice" class="form-control" placeholder="priceWeiPerToken">
+              </div>
+              <div class="col-md-4">
+                <label class="form-label">Mínimo stake por voto</label>
+                <input type="number" id="paramMinVote" class="form-control" placeholder="minStakeVote">
+              </div>
+              <div class="col-md-4">
+                <label class="form-label">Mínimo stake para propuesta</label>
+                <input type="number" id="paramMinProp" class="form-control" placeholder="minStakeProposal">
+              </div>
+              <div class="col-md-4">
+                <label class="form-label">Duración del período de votación (segundos)</label>
+                <input type="number" id="paramVotingPeriod" class="form-control" placeholder="votingPeriodSeconds">
+              </div>
+              <div class="col-md-4">
+                <label class="form-label">Tokens por unidad de poder de voto</label>
+                <input type="number" id="paramTokensPerVP" class="form-control" placeholder="tokensPerVotingPower">
+              </div>
+              <div class="col-md-4">
+                <label class="form-label">Tiempo de bloqueo (segundos)</label>
+                <input type="number" id="paramLockTime" class="form-control" placeholder="lockTimeSeconds">
+              </div>
+            </div>
+            <button class="btn btn-secondary btn-right mt-3" id="btnUpdateParams">Actualizar Parámetros</button>
+          </div>
+
+          <!-- Voting Mode Toggle -->
+          <div class="mb-4">
+            <h5>🎚️ Modo de Votación</h5>
+            <p class="text-muted small">Lineal: Voto = Tokens / TokensPorUnidadDeVoto | Cuadrático: Voto = √(Tokens / TokensPorUnidadDeVoto)</p>
+            <button class="btn btn-info btn-right" id="btnToggleVotingMode">Cambiar Modo</button>
+          </div>
+
+          <!-- Transfer Ownership -->
+          <div class="mb-4">
+            <h5>🔑 Transferir Ownership</h5>
+            <input type="text" id="newOwnerAddr" class="form-control mb-2" placeholder="Nueva dirección de owner">
+            <button class="btn btn-warning btn-right" id="btnTransferOwner">Transferir Ownership</button>
+          </div>
+
+          <!-- Panic Wallet -->
+          <div class="mb-3">
+            <h5>🚨 Configurar Wallet de Pánico (Multisig)</h5>
+            <input type="text" id="panicWalletAddr" class="form-control mb-2" placeholder="Dirección de wallet de pánico">
+            <button class="btn btn-danger btn-right" id="btnSetPanicWallet">Guardar Wallet</button>
+          </div>
+
+          <!-- Pending Transactions -->
+          <div class="card p-4 mt-4 border-primary">
+            <div class="d-flex justify-content-between align-items-center mb-3">
+              <h5 class="mb-0">📝 Transacciones Pendientes (DAO)</h5>
+              <button class="btn btn-sm btn-outline-primary" onclick="window.loadMultisigPendingTxs()">🔄 Actualizar</button>
+            </div>
+            
+            <div id="ownerPendingList">
+              <p class="text-muted text-center small">Cargando...</p>
+            </div>
+          </div>
+
+          <div id="ownerMsg" class="mt-3 small text-muted"></div>
+        </div>
+      </div>
+
+      <!-- TOKENS TAB -->
+      <div class="tab-pane fade" id="tokens" role="tabpanel">
+        
+        <div class="card p-4 mt-3 bg-light">
+          <h4>💰 Tu Balance de Tokens</h4>
+          <p class="mb-0">Balance actual: <strong id="userBalance">--</strong></p>
+        </div>
+
+        <div class="card p-4 mt-3">
+          <h4>🛒 Comprar Tokens</h4>
+          <input type="number" id="buyEth" class="form-control mb-2" placeholder="Cantidad en ETH">
+          <button class="btn btn-success btn-right" id="btnBuy">Comprar Tokens</button>
+        </div>
+
+        <div class="card p-4 mt-4">
+          <h4>🔍 Consultar Balance y Staking por Dirección</h4>
+          <input type="text" id="addrToCheck" class="form-control mb-2" placeholder="Dirección a consultar">
+          <button class="btn btn-primary btn-right" id="btnCheckStakes">Consultar</button>
+          <div id="stakesResult" class="mt-3"></div>
+        </div>
+      </div>
+
+      <!-- PROPOSALS TAB -->
+      <div class="tab-pane fade" id="proposals" role="tabpanel">
+        <div class="card p-4 mt-3">
+          <h4>📝 Crear Propuesta</h4>
+          <input type="text" id="propTitle" class="form-control mb-2" placeholder="Título">
+          <textarea id="propDesc" class="form-control mb-2" placeholder="Descripción" rows="3"></textarea>
+          <input type="number" id="propStake" class="form-control mb-2" placeholder="Tokens a stakear">
+          <button class="btn btn-success btn-full" id="btnCreateProp">Crear Propuesta</button>
+        </div>
+
+        <div class="card p-4 mt-4">
+          <div class="d-flex justify-content-between align-items-center mb-3">
+            <h4 class="mb-0">📋 Listado de Propuestas</h4>
+            <select id="filterStatus" class="form-select w-auto">
+              <option value="ALL">Todas</option>
+              <option value="ACTIVE">Activas</option>
+              <option value="ACCEPTED">Aprobadas</option>
+              <option value="REJECTED">Rechazadas</option>
+            </select>
+          </div>
+          <div id="proposalsList"></div>
+        </div>
+      </div>
+
+      <!-- DELEGATION TAB -->
+      <div class="tab-pane fade" id="delegation" role="tabpanel">
+        
+        <!-- Delegar Voto -->
+        <div class="card p-4 mt-3">
+          <h4>🤝 Delegar tu Voto</h4>
+          <p class="text-muted">Permite que otra persona vote en tu nombre en una propuesta específica.</p>
+          <hr>
+          
+          <div class="row g-3">
+            <div class="col-md-4">
+              <label class="form-label">ID de la Propuesta</label>
+              <input type="number" id="delegateProposalId" class="form-control" placeholder="Ej: 1">
+            </div>
+            <div class="col-md-4">
+              <label class="form-label">Dirección del Delegado</label>
+              <input type="text" id="delegateAddress" class="form-control" placeholder="0x...">
+            </div>
+            <div class="col-md-4">
+              <label class="form-label">Cantidad de Tokens</label>
+              <input type="number" id="delegateAmount" class="form-control" placeholder="Ej: 50">
+            </div>
+          </div>
+          
+          <button class="btn btn-primary btn-right mt-3" id="btnDelegateVote">
+            Delegar Voto
+          </button>
+        </div>
+
+        <!-- Votar con Delegación -->
+        <div class="card p-4 mt-4">
+          <h4>🗳️ Votar Usando Delegación Recibida</h4>
+          <p class="text-muted">Usa los votos que alguien te delegó para votar en su nombre.</p>
+          <hr>
+          
+          <div class="row g-3">
+            <div class="col-md-4">
+              <label class="form-label">ID de la Propuesta</label>
+              <input type="number" id="voteWithDelegationProposalId" class="form-control" placeholder="Ej: 1">
+            </div>
+            <div class="col-md-4">
+              <label class="form-label">Dirección del Delegador</label>
+              <input type="text" id="delegatorAddress" class="form-control" placeholder="0x... (quien te delegó)">
+            </div>
+            <div class="col-md-4">
+              <label class="form-label">Voto</label>
+              <select id="delegatedVoteChoice" class="form-select">
+                <option value="true">✅ A Favor</option>
+                <option value="false">❌ En Contra</option>
+              </select>
+            </div>
+          </div>
+          
+          <button class="btn btn-success btn-right mt-3" id="btnVoteWithDelegation">
+            Votar con Delegación
+          </button>
+        </div>
+
+        <!-- Revocar Delegación -->
+        <div class="card p-4 mt-4">
+          <h4>🚫 Revocar Delegación</h4>
+          <p class="text-muted">Cancela una delegación que hiciste (solo si el delegado aún no votó).</p>
+          <hr>
+          
+          <div class="row g-3">
+            <div class="col-md-6">
+              <label class="form-label">ID de la Propuesta</label>
+              <input type="number" id="revokeProposalId" class="form-control" placeholder="Ej: 1">
+            </div>
+          </div>
+          
+          <button class="btn btn-warning btn-right mt-3" id="btnRevokeDelegation">
+            Revocar Delegación
+          </button>
+        </div>
+
+        <!-- Consultar Delegación -->
+        <div class="card p-4 mt-4">
+          <h4>🔍 Consultar Delegación</h4>
+          <p class="text-muted">Verifica si existe una delegación activa.</p>
+          <hr>
+          
+          <div class="row g-3">
+            <div class="col-md-6">
+              <label class="form-label">ID de la Propuesta</label>
+              <input type="number" id="checkDelegationProposalId" class="form-control" placeholder="Ej: 1">
+            </div>
+            <div class="col-md-6">
+              <label class="form-label">Dirección a Consultar</label>
+              <input type="text" id="checkDelegationAddress" class="form-control" placeholder="0x...">
+            </div>
+          </div>
+          
+          <button class="btn btn-info btn-right mt-3" id="btnCheckDelegation">
+            Consultar Delegación
+          </button>
+          
+          <div id="delegationResult" class="mt-3"></div>
+        </div>
+
+        <!-- Ayuda -->
+        <div class="card p-4 mt-4 bg-light">
+          <h5>ℹ️ ¿Cómo funciona la delegación?</h5>
+          <ol class="mb-0">
+            <li><strong>Delegar:</strong> Le das tu poder de voto a otra persona para una propuesta específica.</li>
+            <li><strong>El delegado vota:</strong> La persona a quien delegaste usa tus tokens para votar.</li>
+            <li><strong>Restricciones:</strong>
+              <ul>
+                <li>No puedes votar directamente si ya delegaste</li>
+                <li>Solo puedes revocar si el delegado aún no votó</li>
+                <li>Una vez que el delegado vota, la delegación se consume</li>
+              </ul>
+            </li>
+          </ol>
+        </div>
+      </div>
+
+
+      <!-- STAKING TAB -->
+      <div class="tab-pane fade" id="staking" role="tabpanel">
+
+        <div class="card p-4 mt-4">
+          <h4>📤 Quitar tokens de propuesta del staking</h4>
+          <input type="number" id="unstakeProposalId" class="form-control mb-2" placeholder="ID de la propuesta">
+          <button class="btn btn-danger btn-right" id="btnUnstake">Unstake Tokens</button>
+        </div>
+
+        <div class="card p-4 mt-4">
+          <h4>📤 Quitar tokens de voto del staking</h4>
+          <input type="number" id="unstakeVoteId" class="form-control mb-2" placeholder="ID de la propuesta">
+          <button class="btn btn-danger btn-right" id="btnUnstakeVote">Unstake Tokens</button>
+        </div>
+
+      </div>
+
+      <!-- PANIC TAB -->
+      <div class="tab-pane fade" id="panic" role="tabpanel">
+        <div class="card p-4 mt-3 text-center">
+          <h4>🚨 Modo Pánico</h4>
+          <p>Activá el modo de emergencia o restaurá el estado normal del sistema.</p>
+          <button class="btn btn-danger btn-full mb-3" id="btnActivatePanic">🚨 Activar Pánico</button>
+          <button class="btn btn-success btn-full" id="btnRestoreNormal">🕊 Restaurar Tranquilidad</button>
+        </div>
+
+        <div id="panicCard" class="card p-4 mt-4 border-danger">
+          <div class="d-flex justify-content-between align-items-center mb-3">
+            <h5 class="mb-0 text-danger">📝 Pendientes de Pánico</h5>
+            <button class="btn btn-sm btn-outline-danger" onclick="window.loadMultisigPendingTxs()">🔄 Actualizar</button>
+          </div>
+
+          <div id="panicPendingList">
+            <p class="text-muted text-center small">Cargando...</p>
+          </div>
+        </div>
+
+    </div>
+
+    <div class="modal fade" id="modalInput" tabindex="-1">
+      <div class="modal-dialog">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h5 class="modal-title" id="modalInputTitle"></h5>
+            <button class="btn-close" data-bs-dismiss="modal"></button>
+          </div>
+          <div class="modal-body">
+            <input id="modalInputField" type="text" class="form-control" />
+            <small id="modalInputHelp" class="text-muted"></small>
+          </div>
+          <div class="modal-footer">
+            <button class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+            <button class="btn btn-primary" id="modalInputOk">Aceptar</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+
+    <div class="modal fade" id="modalConfirm" tabindex="-1">
+      <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h5 class="modal-title">Confirmación</h5>
+            <button class="btn-close" data-bs-dismiss="modal"></button>
+          </div>
+          <div class="modal-body" id="modalConfirmText"></div>
+          <div class="modal-footer">
+            <button class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+            <button class="btn btn-danger" id="modalConfirmOk">Confirmar</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="modal fade" id="paramsModal" tabindex="-1" aria-labelledby="paramsModalLabel" aria-hidden="true">
+      <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h5 class="modal-title" id="paramsModalLabel">Parámetros Actuales de la DAO</h5>
+            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+          </div>
+          <div class="modal-body">
+            <dl class="row" id="daoParamsDisplay">
+              <dt class="col-sm-6">Precio (Wei/Token):</dt>
+              <dd class="col-sm-6" id="displayPrice">...</dd>
+
+              <dt class="col-sm-6">Mínimo Stake (Voto):</dt>
+              <dd class="col-sm-6" id="displayMinVote">...</dd>
+
+              <dt class="col-sm-6">Mínimo Stake (Propuesta):</dt>
+              <dd class="col-sm-6" id="displayMinProp">...</dd>
+
+              <dt class="col-sm-6">Período de Votación (Segundos):</dt>
+              <dd class="col-sm-6" id="displayVotingPeriod">...</dd>
+              
+              <dt class="col-sm-6">Tokens por unidad de poder de voto:</dt>
+              <dd class="col-sm-6" id="displayTokensPerVP">...</dd>
+
+              <dt class="col-sm-6">Tiempo de Bloqueo (Segundos):</dt>
+              <dd class="col-sm-6" id="displayLockTime">...</dd>
+            </dl>
+          </div>
+          <div class="modal-footer">
+            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cerrar</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Bootstrap JS -->
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+
+  <!-- ethers v6 -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/ethers/6.7.1/ethers.umd.min.js"></script>
+
+  <!-- DAO Script -->
+  <script type="module" src="./dao-script.js"></script>
+</body>
+</html>
